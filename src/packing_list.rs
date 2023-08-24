@@ -35,6 +35,10 @@ impl<T> PackingList<T> {
         self.empty_spots.clear();
     }
 
+    pub fn list<'a>(&'a self) -> &'a Vec<Option<T>> {
+        &self.list
+    }
+
     /// Returns the number of non-empty entries in the list.
     #[inline]
     pub fn count(&self) -> usize {
@@ -44,6 +48,21 @@ impl<T> PackingList<T> {
     /// Removes all empty spots in the list and shrinks it to fit.
     ///
     /// Returns a [`TransformTable`] mapping the old indeces to the new ones.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None, Some(4), None]);
+    ///
+    /// let transform = list.pack();
+    ///
+    /// assert_eq!(*list.list(), vec![Some(0), Some(2), Some(4)]);
+    ///
+    /// assert_eq!(transform.get(&0), Some(&0));
+    /// assert_eq!(transform.get(&2), Some(&1));
+    /// assert_eq!(transform.get(&4), Some(&2));
+    /// ```
     pub fn pack(&mut self) -> TransformTable {
         let mut old_list: Vec<Option<T>> = Vec::with_capacity(self.count());
         std::mem::swap(&mut old_list, &mut self.list);
@@ -103,6 +122,29 @@ impl<T> PackingList<T> {
 
     /// Places `data` in the first available spot in the list. Returns the index it was placed at.
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let ex_vec = vec![Some(0), Some(1), Some(2)];
+    /// let list = PackingList::from(ex_vec.clone());
+    ///
+    /// assert_eq!(*list.list(), ex_vec);
+    /// ```
+    ///
+    /// ```
+    /// # use packing_list::PackingList;
+    /// # // TODO: move this to from trait implementation doc
+    /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None]);
+    ///
+    /// let idx = list.add(1);
+    ///
+    /// assert_eq!(idx, 1); // 1 was the smallest empty index
+    /// assert_eq!(list[idx], Some(1));
+    ///
+    /// assert_eq!(*list.list(), vec![Some(0), Some(1), Some(2), None]);
+    /// ```
+    ///
     /// # Time complexity
     ///
     /// The expected cost of `add` is *O*(1). The worst possible case for a single call is *O*(n)
@@ -120,6 +162,18 @@ impl<T> PackingList<T> {
 
     /// Removes the item at the index `idx` of the list if it is not `None`. Returns entry at
     /// `idx`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let mut list = PackingList::from(vec![Some(0), Some(1), Some(2), Some(3)]);
+    ///
+    /// list.remove_by_idx(1);
+    /// list.remove_by_idx(2);
+    ///
+    /// assert_eq!(*list.list(), vec![Some(0), None, None, Some(3)]);
+    /// ```
     ///
     /// # Time complexity
     ///
@@ -169,12 +223,16 @@ impl<T> fmt::Debug for PackingList<T> where T: fmt::Debug {
 	}
 }
 
-impl<T> convert::From<Vec<T>> for PackingList<T> {
-    #[inline]
-    fn from(vec: Vec<T>) -> Self {
+impl<T> convert::From<Vec<Option<T>>> for PackingList<T> {
+    fn from(vec: Vec<Option<T>>) -> Self {
+        let empty_spots: BinaryHeap<Reverse<usize>> = vec.iter()
+            .enumerate()
+            .filter(|(_, opt)| opt.is_none())
+            .map(|(i, _)| Reverse(i)).collect();
+
         PackingList {
-            list: vec.into_iter().map(|v| Some(v)).collect(),
-            empty_spots: BinaryHeap::new()
+            list: vec,
+            empty_spots
         }
     }
 }
@@ -182,6 +240,12 @@ impl<T> convert::From<Vec<T>> for PackingList<T> {
 impl<T> Hash for PackingList<T> where T: Hash {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.list.hash(state);
+    }
+}
+
+impl<T: PartialEq> PartialEq for PackingList<Option<T>> {
+    fn eq(&self, other: &Self) -> bool {
+        self.list == other.list
     }
 }
 

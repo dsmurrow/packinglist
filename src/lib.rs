@@ -5,4 +5,6 @@
 
 pub mod packing_list;
 
-pub use packing_list::PackingList;
+#[doc(inline)]
+pub use crate::packing_list::PackingList;
+
