@@ -39,7 +39,7 @@ impl<T> PackingList<T> {
         self.count() == 0
     }
 
-    pub fn list<'a>(&'a self) -> &'a Vec<Option<T>> {
+    pub fn list(&self) -> &'_ Vec<Option<T>> {
         &self.list
     }
 
@@ -123,7 +123,8 @@ impl<T> PackingList<T> {
         table
     }
 
-    /// Returns an iterator over the indeces of the list that contain items.
+    /// Returns an iterator over the indeces of the list that contain items. The items are yielded
+    /// in increasing order.
     ///
     /// # Examples
     /// ```
@@ -143,7 +144,7 @@ impl<T> PackingList<T> {
         }
     }
 
-    /// Returns an iterator over the items in the list.
+    /// Returns an iterator over the items in the list in order of increasing index.
     ///
     /// # Examples
     /// ```
@@ -162,6 +163,9 @@ impl<T> PackingList<T> {
         }
     }
 
+    /// Returns an iterator that allows modifying each non-empty value in the list, in order of
+    /// increasing index.
+    ///
     /// # Examples
     /// ```
     /// # use packing_list::PackingList;
