@@ -35,6 +35,10 @@ impl<T> PackingList<T> {
         self.empty_spots.clear();
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.count() == 0
+    }
+
     pub fn list<'a>(&'a self) -> &'a Vec<Option<T>> {
         &self.list
     }
@@ -82,6 +86,22 @@ impl<T> PackingList<T> {
     /// Empties `other` into `self`, using the earliest available spaces.
     ///
     /// Returns a [`TransformTable`] mapping the indeces of the values in `other` to their new indeces in `self`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let mut a = PackingList::from(vec![Some(0), None, Some(2), None, Some(4)]);
+    /// let mut b = PackingList::from(vec![Some(1), Some(3)]);
+    ///
+    /// let table = a.combine(&mut b);
+    ///
+    /// assert!(b.is_empty());
+    ///
+    /// assert_eq!(*a.list(), vec![Some(0), Some(1), Some(2), Some(3), Some(4)]);
+    ///
+    /// assert_eq!(table.get(&0), Some(&1));
+    /// assert_eq!(table.get(&1), Some(&3));
+    /// ```
     pub fn combine(&mut self, other: &mut PackingList<T>) -> TransformTable {
         let mut old_other_list: Vec<Option<T>> = Vec::new();
         std::mem::swap(&mut old_other_list, &mut other.list);
@@ -103,6 +123,17 @@ impl<T> PackingList<T> {
         table
     }
 
+    /// Returns an iterator over the indeces of the list that contain items.
+    ///
+    /// # Examples
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let list = PackingList::from(vec![None, Some(1), Some(9), Some(3), None, None, Some(4)]);
+    ///
+    /// let indeces: Vec<usize> = list.index_iter().collect();
+    ///
+    /// assert_eq!(indeces, vec![1, 2, 3, 6]);
+    /// ```
     #[inline]
     pub fn index_iter<'a>(&'a self) -> IndexIter<'a> {
         IndexIter {
@@ -112,6 +143,17 @@ impl<T> PackingList<T> {
         }
     }
 
+    /// Returns an iterator over the items in the list.
+    ///
+    /// # Examples
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let list = PackingList::from(vec![None, Some(1), Some(9), Some(3), None, None, Some(4)]);
+    ///
+    /// let items: Vec<&i32> = list.item_iter().collect();
+    ///
+    /// assert_eq!(items, vec![&1, &9, &3, &4]);
+    /// ```
     #[inline]
     pub fn item_iter<'a>(&'a self) -> ItemIter<'a, T> {
         ItemIter {
@@ -128,20 +170,12 @@ impl<T> PackingList<T> {
     /// # use packing_list::PackingList;
     /// let ex_vec = vec![Some(0), Some(1), Some(2)];
     /// let list = PackingList::from(ex_vec.clone());
-    ///
     /// assert_eq!(*list.list(), ex_vec);
-    /// ```
     ///
-    /// ```
-    /// # use packing_list::PackingList;
-    /// # // TODO: move this to from trait implementation doc
     /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None]);
-    ///
     /// let idx = list.add(1);
-    ///
     /// assert_eq!(idx, 1); // 1 was the smallest empty index
     /// assert_eq!(list[idx], Some(1));
-    ///
     /// assert_eq!(*list.list(), vec![Some(0), Some(1), Some(2), None]);
     /// ```
     ///
@@ -189,6 +223,35 @@ impl<T> PackingList<T> {
             }
             Some(v)
         })
+    }
+
+    /// Get a mutable reference to the item at `idx` if it exists.
+    ///
+    /// # Examples
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let mut list = PackingList::from(vec![Some(19), None]);
+    ///
+    /// let mut_ref = list.get_mut(1);
+    /// assert_eq!(mut_ref, None);
+    ///
+    /// let mut_ref = list.get_mut(0);
+    /// assert_eq!(mut_ref, Some(&mut 19));
+    ///
+    /// *mut_ref.unwrap() = 10;
+    /// assert_eq!(list[0], Some(10));
+    /// ```
+    pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
+        self.list.get_mut(idx)?.as_mut()
+    }
+
+    /// Removes all trailing `None`'s. All user-facing instances of `PackingList` should already be
+    /// trimmed (TODO: why?), so this is for internal purposes.
+    #[allow(dead_code)]
+    fn trim_vec(list: &mut Vec<Option<T>>) {
+        while list.last().is_some_and(|opt| opt.is_none()) {
+            list.pop();
+        }
     }
 }
 
@@ -300,10 +363,9 @@ impl<'a, T> Iterator for ItemIter<'a, T> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(i) = self.index_iter.next() {
-            Some(self.list[i].as_ref().unwrap())
-        } else {
-            None
+        match self.index_iter.next() {
+            Some(i) => self.list[i].as_ref(),
+            None => None
         }
     }
 }
