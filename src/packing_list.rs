@@ -135,7 +135,7 @@ impl<T> PackingList<T> {
     /// assert_eq!(indeces, vec![1, 2, 3, 6]);
     /// ```
     #[inline]
-    pub fn index_iter<'a>(&'a self) -> IndexIter<'a> {
+    pub fn index_iter(&self) -> IndexIter<'_> {
         IndexIter {
             current: 0,
             end: self.list.len(),
@@ -155,7 +155,7 @@ impl<T> PackingList<T> {
     /// assert_eq!(items, vec![&1, &9, &3, &4]);
     /// ```
     #[inline]
-    pub fn item_iter<'a>(&'a self) -> ItemIter<'a, T> {
+    pub fn item_iter(&self) -> ItemIter<'_, T> {
         ItemIter {
             list: &self.list,
             index_iter: self.index_iter()
@@ -173,7 +173,7 @@ impl<T> PackingList<T> {
     ///
     /// assert_eq!(*list.list(), vec![Some(3), Some(6), None, Some(12)]);
     /// ```
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
             items: self.item_iter()
         }
