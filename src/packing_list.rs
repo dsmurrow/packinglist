@@ -162,6 +162,23 @@ impl<T> PackingList<T> {
         }
     }
 
+    /// # Examples
+    /// ```
+    /// # use packing_list::PackingList;
+    /// let mut list = PackingList::from(vec![Some(2), Some(5), None, Some(11)]);
+    ///
+    /// for v in list.iter_mut() {
+    ///     *v += 1
+    /// }
+    ///
+    /// assert_eq!(*list.list(), vec![Some(3), Some(6), None, Some(12)]);
+    /// ```
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
+        IterMut {
+            items: self.item_iter()
+        }
+    }
+
     /// Places `data` in the first available spot in the list. Returns the index it was placed at.
     ///
     /// # Examples
@@ -365,6 +382,27 @@ impl<'a, T> Iterator for ItemIter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.index_iter.next() {
             Some(i) => self.list[i].as_ref(),
+            None => None
+        }
+    }
+}
+
+pub struct IterMut<'a, T> {
+    items: ItemIter<'a, T>
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.items.next() {
+            Some(r) => {
+                // This is my first REAL time doing stuff with Rust pointers. It feels illegal but
+                // satisfying to pull off!
+                unsafe {
+                    (r as *const T).cast_mut().as_mut()
+                }
+            },
             None => None
         }
     }
