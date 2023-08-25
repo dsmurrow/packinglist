@@ -311,6 +311,13 @@ impl<T> fmt::Debug for PackingList<T> where T: fmt::Debug {
 	}
 }
 
+impl<T> FromIterator<Option<T>> for PackingList<T> {
+    #[inline]
+    fn from_iter<I: IntoIterator<Item = Option<T>>>(iter: I) -> Self {
+        Self::from(iter.into_iter().collect::<Vec<Option<T>>>())
+    }
+}
+
 impl<T> convert::From<Vec<Option<T>>> for PackingList<T> {
     fn from(vec: Vec<Option<T>>) -> Self {
         let empty_spots: BinaryHeap<Reverse<usize>> = vec.iter()
