@@ -224,8 +224,8 @@ impl<T> PackingList<T> {
     /// # use packing_list::PackingList;
     /// let mut list = PackingList::from(vec![Some(0), Some(1), Some(2), Some(3)]);
     ///
-    /// list.remove_by_idx(1);
-    /// list.remove_by_idx(2);
+    /// list.remove(1);
+    /// list.remove(2);
     ///
     /// assert_eq!(*list.list(), [Some(0), None, None, Some(3)]);
     /// ```
@@ -235,7 +235,7 @@ impl<T> PackingList<T> {
     /// If `idx` is the last index in the list then it'll take *O*(1) time. Otherwise the
     /// worst-case performance is *O*(log(*n*)).
     #[inline]
-    pub fn remove_by_idx(&mut self, idx: usize) -> Option<T> {
+    pub fn remove(&mut self, idx: usize) -> Option<T> {
         self.list.get_mut(idx)?.take().and_then(|v| {
             if idx == self.list.len() - 1 {
                 self.list.pop();
