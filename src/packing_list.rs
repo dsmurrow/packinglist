@@ -35,10 +35,12 @@ impl<T> PackingList<T> {
         self.empty_spots.clear();
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.count() == 0
     }
 
+    #[inline]
     pub fn list(&self) -> &'_ Vec<Option<T>> {
         &self.list
     }
@@ -177,6 +179,7 @@ impl<T> PackingList<T> {
     ///
     /// assert_eq!(*list.list(), [Some(3), Some(6), None, Some(12)]);
     /// ```
+    #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
             items: self.item_iter()
@@ -262,6 +265,7 @@ impl<T> PackingList<T> {
     /// *mut_ref.unwrap() = 10;
     /// assert_eq!(list[0], Some(10));
     /// ```
+    #[inline]
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut T> {
         self.list.get_mut(idx)?.as_mut()
     }
@@ -322,12 +326,14 @@ impl<T> convert::From<Vec<Option<T>>> for PackingList<T> {
 }
 
 impl<T> Hash for PackingList<T> where T: Hash {
+    #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.list.hash(state);
     }
 }
 
 impl<T: PartialEq> PartialEq for PackingList<Option<T>> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.list == other.list
     }
@@ -398,6 +404,7 @@ pub struct IterMut<'a, T> {
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         match self.items.next() {
             Some(r) => {
