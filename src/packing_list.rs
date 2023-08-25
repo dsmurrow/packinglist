@@ -61,7 +61,7 @@ impl<T> PackingList<T> {
     ///
     /// let transform = list.pack();
     ///
-    /// assert_eq!(*list.list(), vec![Some(0), Some(2), Some(4)]);
+    /// assert_eq!(*list.list(), [Some(0), Some(2), Some(4)]);
     ///
     /// assert_eq!(transform.get(&0), Some(&0));
     /// assert_eq!(transform.get(&2), Some(&1));
@@ -97,7 +97,7 @@ impl<T> PackingList<T> {
     ///
     /// assert!(b.is_empty());
     ///
-    /// assert_eq!(*a.list(), vec![Some(0), Some(1), Some(2), Some(3), Some(4)]);
+    /// assert_eq!(*a.list(), [Some(0), Some(1), Some(2), Some(3), Some(4)]);
     ///
     /// assert_eq!(table.get(&0), Some(&1));
     /// assert_eq!(table.get(&1), Some(&3));
@@ -133,7 +133,7 @@ impl<T> PackingList<T> {
     ///
     /// let indeces: Vec<usize> = list.index_iter().collect();
     ///
-    /// assert_eq!(indeces, vec![1, 2, 3, 6]);
+    /// assert_eq!(indeces, [1, 2, 3, 6]);
     /// ```
     #[inline]
     pub fn index_iter(&self) -> IndexIter<'_> {
@@ -153,7 +153,7 @@ impl<T> PackingList<T> {
     ///
     /// let items: Vec<&i32> = list.item_iter().collect();
     ///
-    /// assert_eq!(items, vec![&1, &9, &3, &4]);
+    /// assert_eq!(items, [&1, &9, &3, &4]);
     /// ```
     #[inline]
     pub fn item_iter(&self) -> ItemIter<'_, T> {
@@ -175,7 +175,7 @@ impl<T> PackingList<T> {
     ///     *v += 1
     /// }
     ///
-    /// assert_eq!(*list.list(), vec![Some(3), Some(6), None, Some(12)]);
+    /// assert_eq!(*list.list(), [Some(3), Some(6), None, Some(12)]);
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
@@ -197,7 +197,7 @@ impl<T> PackingList<T> {
     /// let idx = list.add(1);
     /// assert_eq!(idx, 1); // 1 was the smallest empty index
     /// assert_eq!(list[idx], Some(1));
-    /// assert_eq!(*list.list(), vec![Some(0), Some(1), Some(2), None]);
+    /// assert_eq!(*list.list(), [Some(0), Some(1), Some(2), None]);
     /// ```
     ///
     /// # Time complexity
@@ -227,7 +227,7 @@ impl<T> PackingList<T> {
     /// list.remove_by_idx(1);
     /// list.remove_by_idx(2);
     ///
-    /// assert_eq!(*list.list(), vec![Some(0), None, None, Some(3)]);
+    /// assert_eq!(*list.list(), [Some(0), None, None, Some(3)]);
     /// ```
     ///
     /// # Time complexity
