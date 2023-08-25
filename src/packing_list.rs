@@ -3,6 +3,7 @@ use std::cmp::Reverse;
 use std::convert;
 use std::fmt;
 use std::hash::{ Hash, Hasher };
+use std::iter::{ Enumerate, FilterMap };
 use std::ops::Index;
 use std::slice::SliceIndex;
 
@@ -315,6 +316,19 @@ impl<T> FromIterator<Option<T>> for PackingList<T> {
     #[inline]
     fn from_iter<I: IntoIterator<Item = Option<T>>>(iter: I) -> Self {
         Self::from(iter.into_iter().collect::<Vec<Option<T>>>())
+    }
+}
+
+pub type ListIter<T> = FilterMap<Enumerate<std::vec::IntoIter<Option<T>>>, fn((usize, Option<T>)) -> Option<(usize, T)>>;
+
+impl<T> IntoIterator for PackingList<T> {
+    type Item = (usize, T);
+    type IntoIter = ListIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.list.into_iter()
+            .enumerate()
+            .filter_map(|(i, opt)| opt.and_then(|v| Some((i, v))))
     }
 }
 
