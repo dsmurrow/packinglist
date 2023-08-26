@@ -7,6 +7,9 @@ use std::iter::{ Enumerate, FilterMap };
 use std::ops::Index;
 use std::slice::SliceIndex;
 
+#[cfg(feature = "serde")]
+use serde::{ Deserialize, Deserializer, Serialize, Serializer };
+
 pub type TransformTable = std::collections::BTreeMap<usize, usize>;
 
 /// A FreeList implementation this will always put a new element at the smallest empty index of the
@@ -316,6 +319,26 @@ impl<T> FromIterator<Option<T>> for PackingList<T> {
     #[inline]
     fn from_iter<I: IntoIterator<Item = Option<T>>>(iter: I) -> Self {
         Self::from(iter.into_iter().collect::<Vec<Option<T>>>())
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<T: Serialize> Serialize for PackingList<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> 
+    where
+        S: Serializer,
+    {
+        self.list.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for PackingList<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>
+    {
+        Ok(Self::from(Vec::deserialize(deserializer)?))
     }
 }
 
