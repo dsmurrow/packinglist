@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A freelist implementation that always places data at the smallest index."
 readme = "README.md"
+repository = "https://github.com/dsmurrow/packinglist"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
