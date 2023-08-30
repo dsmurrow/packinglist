@@ -518,6 +518,14 @@ mod tests {
         assert_eq!(iter.next(), Some((8, 4)));
         assert_eq!(iter.next(), None);
     }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn test_serialize() {
+        let list = PackingList::from(vec![Some(1), None, None, Some(400)]);
+        let serialized = serde_json::to_string(&list).unwrap();
+        assert_eq!("[1,null,null,400]", serialized);
+    }
 }
 
 
