@@ -321,7 +321,8 @@ impl<T> PackingList<T> {
         })
     }
 
-    /// Get a mutable reference to the item at `idx` if it exists.
+    /// Get a mutable reference to the item at `idx` if it exists., for unmutable functionality,
+    /// just index the list.
     ///
     /// # Examples
     /// ```
