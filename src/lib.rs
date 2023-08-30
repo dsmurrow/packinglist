@@ -1,4 +1,4 @@
-//! # packing_list
+//! # packinglist
 //!
 //! This is a kind of [free list](https://en.wikipedia.org/wiki/Free_list) implementation where new elements are
 //! *guaranteed* to be placed in the smallest available index of the list. 
@@ -67,7 +67,7 @@ impl<T> PackingList<T> {
     /// # Examples
     ///
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None, Some(4), None]);
     ///
     /// let transform = list.pack();
@@ -100,7 +100,7 @@ impl<T> PackingList<T> {
     ///
     /// # Examples
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let mut a = PackingList::from(vec![Some(0), None, Some(2), None, Some(4)]);
     /// let mut b = PackingList::from(vec![Some(1), Some(3)]);
     ///
@@ -139,7 +139,7 @@ impl<T> PackingList<T> {
     ///
     /// # Examples
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let list = PackingList::from(vec![None, Some(1), Some(9), Some(3), None, None, Some(4)]);
     ///
     /// let indeces: Vec<usize> = list.index_iter().collect();
@@ -159,7 +159,7 @@ impl<T> PackingList<T> {
     ///
     /// # Examples
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let list = PackingList::from(vec![None, Some(1), Some(9), Some(3), None, None, Some(4)]);
     ///
     /// let items: Vec<&i32> = list.item_iter().collect();
@@ -179,7 +179,7 @@ impl<T> PackingList<T> {
     ///
     /// # Examples
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let mut list = PackingList::from(vec![Some(2), Some(5), None, Some(11)]);
     ///
     /// for v in list.iter_mut() {
@@ -200,7 +200,7 @@ impl<T> PackingList<T> {
     /// # Examples
     ///
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let ex_vec = vec![Some(0), Some(1), Some(2)];
     /// let list = PackingList::from(ex_vec.clone());
     /// assert_eq!(*list.list(), ex_vec);
@@ -233,7 +233,7 @@ impl<T> PackingList<T> {
     /// # Examples
     ///
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let mut list = PackingList::from(vec![Some(0), Some(1), Some(2), Some(3)]);
     ///
     /// list.remove(1);
@@ -248,13 +248,13 @@ impl<T> PackingList<T> {
     /// worst-case performance is *O*(log(*n*)).
     #[inline]
     pub fn remove(&mut self, idx: usize) -> Option<T> {
-        self.list.get_mut(idx)?.take().and_then(|v| {
+        self.list.get_mut(idx)?.take().map(|v| {
             if idx == self.list.len() - 1 {
                 self.list.pop();
             } else {
                 self.empty_spots.push(Reverse(idx));
             }
-            Some(v)
+            v
         })
     }
 
@@ -262,7 +262,7 @@ impl<T> PackingList<T> {
     ///
     /// # Examples
     /// ```
-    /// # use packing_list::PackingList;
+    /// # use packinglist::PackingList;
     /// let mut list = PackingList::from(vec![Some(19), None]);
     ///
     /// let mut_ref = list.get_mut(1);
@@ -356,7 +356,7 @@ impl<T> IntoIterator for PackingList<T> {
     fn into_iter(self) -> Self::IntoIter {
         self.list.into_iter()
             .enumerate()
-            .filter_map(|(i, opt)| opt.and_then(|v| Some((i, v))))
+            .filter_map(|(i, opt)| opt.map(|v| (i, v)))
     }
 }
 
