@@ -87,7 +87,7 @@ impl<T> PackingList<T> {
     }
 
     #[inline]
-    pub fn list(&self) -> &'_ Vec<Option<T>> {
+    pub fn as_vec(&self) -> &'_ Vec<Option<T>> {
         &self.list
     }
 
@@ -109,7 +109,7 @@ impl<T> PackingList<T> {
     ///
     /// let transform = list.pack();
     ///
-    /// assert_eq!(*list.list(), [Some(0), Some(2), Some(4)]);
+    /// assert_eq!(*list.as_vec(), [Some(0), Some(2), Some(4)]);
     ///
     /// assert_eq!(transform.get(&0), Some(&0));
     /// assert_eq!(transform.get(&2), Some(&1));
@@ -145,7 +145,7 @@ impl<T> PackingList<T> {
     ///
     /// assert!(b.is_empty());
     ///
-    /// assert_eq!(*a.list(), [Some(0), Some(1), Some(2), Some(3), Some(4)]);
+    /// assert_eq!(*a.as_vec(), [Some(0), Some(1), Some(2), Some(3), Some(4)]);
     ///
     /// assert_eq!(table.get(&0), Some(&1));
     /// assert_eq!(table.get(&1), Some(&3));
@@ -223,7 +223,7 @@ impl<T> PackingList<T> {
     ///     *v += 1
     /// }
     ///
-    /// assert_eq!(*list.list(), [Some(3), Some(6), None, Some(12)]);
+    /// assert_eq!(*list.as_vec(), [Some(3), Some(6), None, Some(12)]);
     /// ```
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
@@ -240,13 +240,13 @@ impl<T> PackingList<T> {
     /// # use packinglist::PackingList;
     /// let ex_vec = vec![Some(0), Some(1), Some(2)];
     /// let list = PackingList::from(ex_vec.clone());
-    /// assert_eq!(*list.list(), ex_vec);
+    /// assert_eq!(*list.as_vec(), ex_vec);
     ///
     /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None]);
     /// let idx = list.add(1);
     /// assert_eq!(idx, 1); // 1 was the smallest empty index
     /// assert_eq!(list[idx], Some(1));
-    /// assert_eq!(*list.list(), [Some(0), Some(1), Some(2), None]);
+    /// assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2), None]);
     /// ```
     ///
     /// # Time complexity
@@ -276,7 +276,7 @@ impl<T> PackingList<T> {
     /// list.remove(1);
     /// list.remove(2);
     ///
-    /// assert_eq!(*list.list(), [Some(0), None, None, Some(3)]);
+    /// assert_eq!(*list.as_vec(), [Some(0), None, None, Some(3)]);
     /// ```
     ///
     /// # Time complexity
@@ -516,7 +516,7 @@ mod tests {
 
         assert_eq!(list.add(1), 1);
         assert_eq!(list.add(3), 3);
-        assert_eq!(*list.list(), [Some(0), Some(1), Some(2), Some(3), Some(4)]);
+        assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2), Some(3), Some(4)]);
     }
 
     #[test]
@@ -524,7 +524,7 @@ mod tests {
         let mut list = PackingList::from(vec![Some(0), Some(1)]);
 
         assert_eq!(list.add(2), 2);
-        assert_eq!(*list.list(), [Some(0), Some(1), Some(2)]);
+        assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2)]);
     }
 
     #[test]
@@ -541,7 +541,7 @@ mod tests {
         let mut list = PackingList::from(vec.clone());
 
         assert_eq!(list.remove(1), None);
-        assert_eq!(*list.list(), vec);
+        assert_eq!(*list.as_vec(), vec);
     }
 
     #[test]
