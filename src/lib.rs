@@ -3,13 +3,50 @@
 //! This is a kind of [free list](https://en.wikipedia.org/wiki/Free_list) implementation where new elements are
 //! *guaranteed* to be placed in the smallest available index of the list. 
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
+#[cfg(not(feature = "std"))]
+use alloc::collections::{ binary_heap, BinaryHeap };
+#[cfg(feature = "std")]
 use std::collections::{ binary_heap, BinaryHeap };
+
+#[cfg(not(feature = "std"))]
+use core::cmp::Reverse;
+#[cfg(feature = "std")]
 use std::cmp::Reverse;
+
+#[cfg(not(feature = "std"))]
+use core::convert;
+#[cfg(feature = "std")]
 use std::convert;
+
+#[cfg(not(feature = "std"))]
+use core::fmt;
+#[cfg(feature = "std")]
 use std::fmt;
+
+#[cfg(not(feature = "std"))]
+use core::hash::{ Hash, Hasher };
+#[cfg(feature = "std")]
 use std::hash::{ Hash, Hasher };
+
+#[cfg(not(feature = "std"))]
+use core::iter::{ Enumerate, FilterMap };
+#[cfg(feature = "std")]
 use std::iter::{ Enumerate, FilterMap };
+
+#[cfg(not(feature = "std"))]
+use core::ops::Index;
+#[cfg(feature = "std")]
 use std::ops::Index;
+
+#[cfg(not(feature = "std"))]
+use core::slice::SliceIndex;
+#[cfg(feature = "std")]
 use std::slice::SliceIndex;
 
 #[cfg(feature = "serde")]
