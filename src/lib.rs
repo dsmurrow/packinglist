@@ -35,14 +35,14 @@ use core::hash::{ Hash, Hasher };
 use std::hash::{ Hash, Hasher };
 
 #[cfg(not(feature = "std"))]
-use core::iter::{ Enumerate, FilterMap };
+use core::iter::{ Enumerate, FilterMap, Peekable };
 #[cfg(feature = "std")]
-use std::iter::{ Enumerate, FilterMap };
+use std::iter::{ Enumerate, FilterMap, Peekable };
 
 #[cfg(not(feature = "std"))]
-use core::ops::Index;
+use core::ops::{ Deref, DerefMut, Drop, Index };
 #[cfg(feature = "std")]
-use std::ops::Index;
+use std::ops::{ Deref, DerefMut, Drop, Index };
 
 #[cfg(not(feature = "std"))]
 use core::slice::SliceIndex;
@@ -89,6 +89,32 @@ impl<T> PackingList<T> {
     #[inline]
     pub fn as_vec(&self) -> &'_ Vec<Option<T>> {
         &self.list
+    }
+
+    /// Returns a smart pointer to the vector containing the list, which can be modified like any
+    /// mutable [`Vec`].
+    ///
+    /// # Examples
+    /// ```
+    /// # use packinglist::PackingList;
+    /// let mut list = PackingList::from(vec![Some(1), None, Some(2), Some(5)]);
+    ///
+    /// {
+    ///     let mut ptr = list.as_vec_mut();
+    ///     ptr[0] = None;
+    ///     ptr[1] = Some(5);
+    ///     ptr[2] = None;
+    ///     ptr.push(None);
+    /// }
+    /// 
+    /// assert_eq!(list.add(0), 0);
+    /// assert_eq!(*list.as_vec(), [Some(0), Some(5), None, Some(5)]);
+    /// ```
+    #[inline]
+    pub fn as_vec_mut<'a>(&'a mut self) -> VecPtr<'a, T> {
+        VecPtr {
+            list: self
+        }
     }
 
     /// Returns the number of non-empty entries in the list.
@@ -317,11 +343,10 @@ impl<T> PackingList<T> {
     }
 
     /// Removes all trailing `None`'s. All user-facing instances of `PackingList` should already be
-    /// trimmed (TODO: why?), so this is for internal purposes.
-    #[allow(dead_code)]
-    fn trim_vec(list: &mut Vec<Option<T>>) {
-        while list.last().is_some_and(|opt| opt.is_none()) {
-            list.pop();
+    /// trimmed, so this is for internal purposes.
+    fn trim_vec(&mut self) {
+        while self.list.last().is_some_and(|opt| opt.is_none()) {
+            self.list.pop();
         }
     }
 }
@@ -425,9 +450,40 @@ impl<T: PartialEq> PartialEq for PackingList<Option<T>> {
     }
 }
 
+pub struct VecPtr<'a, T> {
+    list: &'a mut PackingList<T>
+}
 
+impl<'a, T> Deref for VecPtr<'a, T> {
+    type Target = Vec<Option<T>>;
 
-use std::iter::Peekable;
+    fn deref(&self) -> &Self::Target {
+        &self.list.list
+    }
+}
+
+impl<'a, T> DerefMut for VecPtr<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.list.list
+    }
+}
+
+impl<'a, T> Drop for VecPtr<'a, T> {
+    fn drop(&mut self) {
+        self.list.trim_vec();
+        self.list.empty_spots.clear();
+
+        let empty_indeces = self.list.list.iter()
+            .enumerate()
+            .filter(|(_, opt)| opt.is_none())
+            .map(|(i, _)| i);
+
+        for i in empty_indeces {
+            self.list.empty_spots.push(Reverse(i));
+        }
+    }
+}
+
 
 pub struct IndexIter<'a> {
     current: usize,
