@@ -120,7 +120,7 @@ impl<T> PackingList<T> {
     /// }
     ///
     /// assert_eq!(list.add(0), 0);
-    /// assert_eq!(*list.as_vec(), [Some(0), Some(5), None, Some(5)]);
+    /// assert_eq!(list, [Some(0), Some(5), None, Some(5)]);
     /// ```
     #[inline]
     pub fn as_vec_mut(&mut self) -> VecPtr<'_, T> {
@@ -145,7 +145,7 @@ impl<T> PackingList<T> {
     ///
     /// let transform = list.pack();
     ///
-    /// assert_eq!(*list.as_vec(), [Some(0), Some(2), Some(4)]);
+    /// assert_eq!(list, [Some(0), Some(2), Some(4)]);
     ///
     /// assert_eq!(transform.get(&0), Some(&0));
     /// assert_eq!(transform.get(&2), Some(&1));
@@ -263,7 +263,7 @@ impl<T> PackingList<T> {
     ///     *v += 1
     /// }
     ///
-    /// assert_eq!(*list.as_vec(), [Some(3), Some(6), None, Some(12)]);
+    /// assert_eq!(list, [Some(3), Some(6), None, Some(12)]);
     /// ```
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
@@ -280,13 +280,13 @@ impl<T> PackingList<T> {
     /// # use packinglist::PackingList;
     /// let ex_vec = [Some(0), Some(1), Some(2)];
     /// let list = PackingList::from(ex_vec.clone());
-    /// assert_eq!(*list.as_vec(), ex_vec);
+    /// assert_eq!(list, ex_vec);
     ///
     /// let mut list = PackingList::from([Some(0), None, Some(2), None]);
     /// let idx = list.add(1);
     /// assert_eq!(idx, 1); // 1 was the smallest empty index
     /// assert_eq!(list[idx], Some(1));
-    /// assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2), None]);
+    /// assert_eq!(list, [Some(0), Some(1), Some(2), None]);
     /// ```
     ///
     /// # Time complexity
@@ -316,7 +316,7 @@ impl<T> PackingList<T> {
     /// list.remove(1);
     /// list.remove(2);
     ///
-    /// assert_eq!(*list.as_vec(), [Some(0), None, None, Some(3)]);
+    /// assert_eq!(list, [Some(0), None, None, Some(3)]);
     /// ```
     ///
     /// # Time complexity
@@ -366,7 +366,7 @@ impl<T> PackingList<T> {
     /// # use packinglist::PackingList;
     /// let mut list = PackingList::from([Some(0), Some(1), None, Some(3), Some(4)]);
     /// list.retain(|&n| n > 2);
-    /// assert_eq!(*list.as_vec(), [None, None, None, Some(3), Some(4)]);
+    /// assert_eq!(list, [None, None, None, Some(3), Some(4)]);
     /// ```
     #[inline]
     pub fn retain<F>(&mut self, mut f: F)
@@ -392,7 +392,7 @@ impl<T> PackingList<T> {
     /// } else {
     ///     false
     /// });
-    /// assert_eq!(*list.as_vec(), [None, None, None, Some(4), Some(5)]);
+    /// assert_eq!(list, [None, None, None, Some(4), Some(5)]);
     /// ```
     pub fn retain_mut<F>(&mut self, mut f: F)
     where
@@ -565,12 +565,67 @@ where
     }
 }
 
-impl<T: PartialEq> PartialEq for PackingList<T> {
+impl<T, const N: usize, U> PartialEq<[Option<U>; N]> for PackingList<T>
+where
+    Option<T>: PartialEq<Option<U>>,
+{
     #[inline]
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &[Option<U>; N]) -> bool {
+        self.list.eq(other)
+    }
+}
+
+impl<T, const N: usize, U> PartialEq<&[Option<U>; N]> for PackingList<T>
+where
+    Option<T>: PartialEq<Option<U>>,
+{
+    #[inline]
+    fn eq(&self, other: &&[Option<U>; N]) -> bool {
+        self.list.eq(other)
+    }
+}
+
+impl<T, U> PartialEq<[Option<U>]> for PackingList<T>
+where
+    Option<T>: PartialEq<Option<U>>,
+{
+    #[inline]
+    fn eq(&self, other: &[Option<U>]) -> bool {
+        self.list.eq(other)
+    }
+}
+
+impl<T, U> PartialEq<&[Option<U>]> for PackingList<T>
+where
+    Option<T>: PartialEq<Option<U>>,
+{
+    #[inline]
+    fn eq(&self, other: &&[Option<U>]) -> bool {
+        self.list.eq(other)
+    }
+}
+
+impl<T, U> PartialEq<Vec<Option<U>>> for PackingList<T> 
+where
+    Option<T>: PartialEq<Option<U>>,
+{
+    #[inline]
+    fn eq(&self, other: &Vec<Option<U>>) -> bool {
+        self.list == *other
+    }
+}
+
+impl<T, U> PartialEq<PackingList<U>> for PackingList<T> 
+where
+    Option<T>: PartialEq<Option<U>>,
+{
+    #[inline]
+    fn eq(&self, other: &PackingList<U>) -> bool {
         self.list == other.list
     }
 }
+
+impl<T: Eq> Eq for PackingList<T> {}
 
 pub struct VecPtr<'a, T> {
     list: &'a mut PackingList<T>,
@@ -699,7 +754,7 @@ mod tests {
         assert_eq!(list.add(1), 1);
         assert_eq!(list.add(3), 3);
         assert_eq!(
-            *list.as_vec(),
+            list,
             [Some(0), Some(1), Some(2), Some(3), Some(4)]
         );
     }
@@ -709,7 +764,7 @@ mod tests {
         let mut list = PackingList::from([Some(0), Some(1)]);
 
         assert_eq!(list.add(2), 2);
-        assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2)]);
+        assert_eq!(list, [Some(0), Some(1), Some(2)]);
     }
 
     #[test]
@@ -732,7 +787,7 @@ mod tests {
         let mut list = PackingList::from(vec.clone());
 
         assert_eq!(list.remove(1), None);
-        assert_eq!(*list.as_vec(), vec);
+        assert_eq!(list, vec);
     }
 
     #[test]
