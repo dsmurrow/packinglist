@@ -1,18 +1,22 @@
 //! # packinglist
 //!
 //! This is a kind of [free list](https://en.wikipedia.org/wiki/Free_list) implementation where new elements are
-//! *guaranteed* to be placed in the smallest available index of the list. 
+//! *guaranteed* to be placed in the smallest available index of the list.
+
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
+#[cfg(feature = "std")]
+use std::vec;
 
 #[cfg(not(feature = "std"))]
-use alloc::collections::{ binary_heap, BinaryHeap };
+use alloc::collections::{binary_heap, BTreeMap, BinaryHeap};
 #[cfg(feature = "std")]
-use std::collections::{ binary_heap, BinaryHeap };
+use std::collections::{binary_heap, BTreeMap, BinaryHeap};
 
 #[cfg(not(feature = "std"))]
 use core::cmp::Reverse;
@@ -30,19 +34,24 @@ use core::fmt;
 use std::fmt;
 
 #[cfg(not(feature = "std"))]
-use core::hash::{ Hash, Hasher };
+use core::hash::{Hash, Hasher};
 #[cfg(feature = "std")]
-use std::hash::{ Hash, Hasher };
+use std::hash::{Hash, Hasher};
 
 #[cfg(not(feature = "std"))]
-use core::iter::{ Enumerate, FilterMap, Peekable };
+use core::iter::{Enumerate, FilterMap, Peekable};
 #[cfg(feature = "std")]
-use std::iter::{ Enumerate, FilterMap, Peekable };
+use std::iter::{Enumerate, FilterMap, Peekable};
 
 #[cfg(not(feature = "std"))]
-use core::ops::{ Deref, DerefMut, Drop, Index };
+use core::mem;
 #[cfg(feature = "std")]
-use std::ops::{ Deref, DerefMut, Drop, Index };
+use std::mem;
+
+#[cfg(not(feature = "std"))]
+use core::ops::{Deref, DerefMut, Drop, Index};
+#[cfg(feature = "std")]
+use std::ops::{Deref, DerefMut, Drop, Index};
 
 #[cfg(not(feature = "std"))]
 use core::slice::SliceIndex;
@@ -50,16 +59,16 @@ use core::slice::SliceIndex;
 use std::slice::SliceIndex;
 
 #[cfg(feature = "serde")]
-use serde::{ Deserialize, Deserializer, Serialize, Serializer };
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-pub type TransformTable = std::collections::BTreeMap<usize, usize>;
+pub type TransformTable = BTreeMap<usize, usize>;
 
 /// A FreeList implementation this will always put a new element at the smallest empty index of the
 /// list.
 #[derive(Clone, Default)]
 pub struct PackingList<T> {
     list: Vec<Option<T>>,
-    empty_spots: BinaryHeap<Reverse<usize>>
+    empty_spots: BinaryHeap<Reverse<usize>>,
 }
 
 impl<T> PackingList<T> {
@@ -70,7 +79,7 @@ impl<T> PackingList<T> {
     pub fn new() -> Self {
         PackingList {
             list: Vec::new(),
-            empty_spots: BinaryHeap::new()
+            empty_spots: BinaryHeap::new(),
         }
     }
 
@@ -106,15 +115,13 @@ impl<T> PackingList<T> {
     ///     ptr[2] = None;
     ///     ptr.push(None);
     /// }
-    /// 
+    ///
     /// assert_eq!(list.add(0), 0);
     /// assert_eq!(*list.as_vec(), [Some(0), Some(5), None, Some(5)]);
     /// ```
     #[inline]
-    pub fn as_vec_mut<'a>(&'a mut self) -> VecPtr<'a, T> {
-        VecPtr {
-            list: self
-        }
+    pub fn as_vec_mut(&mut self) -> VecPtr<'_, T> {
+        VecPtr { list: self }
     }
 
     /// Returns the number of non-empty entries in the list.
@@ -143,13 +150,17 @@ impl<T> PackingList<T> {
     /// ```
     pub fn pack(&mut self) -> TransformTable {
         let mut old_list: Vec<Option<T>> = Vec::with_capacity(self.count());
-        std::mem::swap(&mut old_list, &mut self.list);
+        mem::swap(&mut old_list, &mut self.list);
 
         self.empty_spots.clear();
 
         let mut table = TransformTable::new();
 
-        for (i, v) in old_list.into_iter().enumerate().filter(|(_, v)| v.is_some()) {
+        for (i, v) in old_list
+            .into_iter()
+            .enumerate()
+            .filter(|(_, v)| v.is_some())
+        {
             self.list.push(v);
             table.insert(i, self.list.len() - 1);
         }
@@ -178,7 +189,7 @@ impl<T> PackingList<T> {
     /// ```
     pub fn combine(&mut self, other: &mut PackingList<T>) -> TransformTable {
         let mut old_other_list: Vec<Option<T>> = Vec::new();
-        std::mem::swap(&mut old_other_list, &mut other.list);
+        mem::swap(&mut old_other_list, &mut other.list);
 
         other.empty_spots.clear();
 
@@ -214,7 +225,7 @@ impl<T> PackingList<T> {
         IndexIter {
             current: 0,
             end: self.list.len(),
-            heap_iter: self.empty_spots.iter().peekable()
+            heap_iter: self.empty_spots.iter().peekable(),
         }
     }
 
@@ -233,7 +244,7 @@ impl<T> PackingList<T> {
     pub fn item_iter(&self) -> ItemIter<'_, T> {
         ItemIter {
             list: &self.list,
-            index_iter: self.index_iter()
+            index_iter: self.index_iter(),
         }
     }
 
@@ -254,7 +265,7 @@ impl<T> PackingList<T> {
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
-            items: self.item_iter()
+            items: self.item_iter(),
         }
     }
 
@@ -361,26 +372,29 @@ impl<T, I: SliceIndex<[Option<T>]>> Index<I> for PackingList<T> {
     }
 }
 
-impl<T> fmt::Debug for PackingList<T> where T: fmt::Debug {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "[")?;
+impl<T> fmt::Debug for PackingList<T>
+where
+    T: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[")?;
 
-		let len = self.list.len();
+        let len = self.list.len();
 
-		for opt in &self.list[0..(len - 1)] {
-			match opt {
-				Some(v) => write!(f, "{:?}, ", v)?,
-				None => write!(f, "_, ")?
-			};
-		}
+        for opt in &self.list[0..(len - 1)] {
+            match opt {
+                Some(v) => write!(f, "{:?}, ", v)?,
+                None => write!(f, "_, ")?,
+            };
+        }
 
-		match self.list.last() {
-			Some(Some(v)) => write!(f, "{:?}]", v)?,
-			_ => write!(f, "]")?
-		};
+        match self.list.last() {
+            Some(Some(v)) => write!(f, "{:?}]", v)?,
+            _ => write!(f, "]")?,
+        };
 
         Ok(())
-	}
+    }
 }
 
 impl<T> FromIterator<Option<T>> for PackingList<T> {
@@ -392,7 +406,7 @@ impl<T> FromIterator<Option<T>> for PackingList<T> {
 
 #[cfg(feature = "serde")]
 impl<T: Serialize> Serialize for PackingList<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> 
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -404,20 +418,22 @@ impl<T: Serialize> Serialize for PackingList<T> {
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for PackingList<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         Ok(Self::from(Vec::deserialize(deserializer)?))
     }
 }
 
-pub type ListIter<T> = FilterMap<Enumerate<std::vec::IntoIter<Option<T>>>, fn((usize, Option<T>)) -> Option<(usize, T)>>;
+pub type ListIter<T> =
+    FilterMap<Enumerate<vec::IntoIter<Option<T>>>, fn((usize, Option<T>)) -> Option<(usize, T)>>;
 
 impl<T> IntoIterator for PackingList<T> {
     type Item = (usize, T);
     type IntoIter = ListIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.list.into_iter()
+        self.list
+            .into_iter()
             .enumerate()
             .filter_map(|(i, opt)| opt.map(|v| (i, v)))
     }
@@ -425,19 +441,24 @@ impl<T> IntoIterator for PackingList<T> {
 
 impl<T> convert::From<Vec<Option<T>>> for PackingList<T> {
     fn from(vec: Vec<Option<T>>) -> Self {
-        let empty_spots: BinaryHeap<Reverse<usize>> = vec.iter()
+        let empty_spots: BinaryHeap<Reverse<usize>> = vec
+            .iter()
             .enumerate()
             .filter(|(_, opt)| opt.is_none())
-            .map(|(i, _)| Reverse(i)).collect();
+            .map(|(i, _)| Reverse(i))
+            .collect();
 
         PackingList {
             list: vec,
-            empty_spots
+            empty_spots,
         }
     }
 }
 
-impl<T> Hash for PackingList<T> where T: Hash {
+impl<T> Hash for PackingList<T>
+where
+    T: Hash,
+{
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.list.hash(state);
@@ -452,7 +473,7 @@ impl<T: PartialEq> PartialEq for PackingList<Option<T>> {
 }
 
 pub struct VecPtr<'a, T> {
-    list: &'a mut PackingList<T>
+    list: &'a mut PackingList<T>,
 }
 
 impl<'a, T> Deref for VecPtr<'a, T> {
@@ -474,7 +495,10 @@ impl<'a, T> Drop for VecPtr<'a, T> {
         self.list.trim_vec();
         self.list.empty_spots.clear();
 
-        let empty_indeces = self.list.list.iter()
+        let empty_indeces = self
+            .list
+            .list
+            .iter()
             .enumerate()
             .filter(|(_, opt)| opt.is_none())
             .map(|(i, _)| i);
@@ -485,11 +509,10 @@ impl<'a, T> Drop for VecPtr<'a, T> {
     }
 }
 
-
 pub struct IndexIter<'a> {
     current: usize,
     end: usize,
-    heap_iter: Peekable<binary_heap::Iter<'a, Reverse<usize>>>
+    heap_iter: Peekable<binary_heap::Iter<'a, Reverse<usize>>>,
 }
 
 impl<'a> Iterator for IndexIter<'a> {
@@ -525,7 +548,7 @@ impl<'a> Iterator for IndexIter<'a> {
 
 pub struct ItemIter<'a, T> {
     list: &'a Vec<Option<T>>,
-    index_iter: IndexIter<'a>
+    index_iter: IndexIter<'a>,
 }
 
 impl<'a, T> Iterator for ItemIter<'a, T> {
@@ -535,13 +558,13 @@ impl<'a, T> Iterator for ItemIter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.index_iter.next() {
             Some(i) => self.list[i].as_ref(),
-            None => None
+            None => None,
         }
     }
 }
 
 pub struct IterMut<'a, T> {
-    items: ItemIter<'a, T>
+    items: ItemIter<'a, T>,
 }
 
 impl<'a, T> Iterator for IterMut<'a, T> {
@@ -553,19 +576,19 @@ impl<'a, T> Iterator for IterMut<'a, T> {
             Some(r) => {
                 // This is my first REAL time doing stuff with Rust pointers. It feels illegal but
                 // satisfying to pull off!
-                unsafe {
-                    (r as *const T).cast_mut().as_mut()
-                }
-            },
-            None => None
+                unsafe { (r as *const T).cast_mut().as_mut() }
+            }
+            None => None,
         }
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(not(feature = "std"))]
+    use alloc::format;
 
     #[test]
     fn add_does_fill() {
@@ -573,7 +596,10 @@ mod tests {
 
         assert_eq!(list.add(1), 1);
         assert_eq!(list.add(3), 3);
-        assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2), Some(3), Some(4)]);
+        assert_eq!(
+            *list.as_vec(),
+            [Some(0), Some(1), Some(2), Some(3), Some(4)]
+        );
     }
 
     #[test]
@@ -609,8 +635,18 @@ mod tests {
 
     #[test]
     fn into_iter() {
-        let mut iter = PackingList::from(vec![None, Some(1), Some(2), None, None, None, Some(3), None, Some(4)])
-            .into_iter();
+        let mut iter = PackingList::from(vec![
+            None,
+            Some(1),
+            Some(2),
+            None,
+            None,
+            None,
+            Some(3),
+            None,
+            Some(4),
+        ])
+        .into_iter();
 
         assert_eq!(iter.next(), Some((1, 1)));
         assert_eq!(iter.next(), Some((2, 2)));
@@ -637,5 +673,3 @@ mod tests {
         assert_eq!("[1,null,null,400]", serialized);
     }
 }
-
-
