@@ -357,6 +357,55 @@ impl<T> PackingList<T> {
         self.list.get_mut(idx)?.as_mut()
     }
 
+    /// Retains only the non-empty elements of the list specified by the predicate.
+    ///
+    /// Each element that stays is at the same index as it was before `retain` was called.
+    ///
+    /// # Examples
+    /// ```
+    /// # use packinglist::PackingList;
+    /// let mut list = PackingList::from([Some(0), Some(1), None, Some(3), Some(4)]);
+    /// list.retain(|&n| n > 2);
+    /// assert_eq!(*list.as_vec(), [None, None, None, Some(3), Some(4)]);
+    /// ```
+    #[inline]
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        self.retain_mut(|elem| f(elem));
+    }
+
+
+    /// Retains only the non-empty elements of the list specified by the predicate, passing a
+    /// mutable reference to it.
+    ///
+    /// Each element that stays is at the same index as it was before `retain_mut` was called.
+    ///
+    /// # Examples
+    /// ```
+    /// # use packinglist::PackingList;
+    /// let mut list = PackingList::from([Some(0), Some(1), None, Some(3), Some(4)]);
+    /// list.retain_mut(|n| if *n > 2 {
+    ///     *n += 1;
+    ///     true
+    /// } else {
+    ///     false
+    /// });
+    /// assert_eq!(*list.as_vec(), [None, None, None, Some(4), Some(5)]);
+    /// ```
+    pub fn retain_mut<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut T) -> bool,
+    {
+        for i in 0..self.list.len() {
+            if let Some(value) = self.get_mut(i) {
+                if !f(value) {
+                    self.remove(i);
+                }
+            }
+        }
+    }
 
 
     /// Removes all trailing `None`'s. All user-facing instances of `PackingList` should already be
