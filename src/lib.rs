@@ -14,6 +14,9 @@ use alloc::{vec, vec::Vec};
 use std::vec;
 
 #[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
+#[cfg(not(feature = "std"))]
 use alloc::collections::{binary_heap, BTreeMap, BinaryHeap};
 #[cfg(feature = "std")]
 use std::collections::{binary_heap, BTreeMap, BinaryHeap};
@@ -440,8 +443,26 @@ impl<T> IntoIterator for PackingList<T> {
 }
 
 impl<T, const N: usize> From<[Option<T>; N]> for PackingList<T> {
-    fn from(arr: [Option<T>; N]) -> PackingList<T> {
+    fn from(arr: [Option<T>; N]) -> Self {
         Self::from(Vec::from(arr))
+    }
+}
+
+impl<T: Clone> From<&[Option<T>]> for PackingList<T> {
+    fn from(s: &[Option<T>]) -> Self {
+        Self::from(s.to_vec())
+    }
+}
+
+impl<T: Clone> From<&mut [Option<T>]> for PackingList<T> {
+    fn from(s: &mut [Option<T>]) -> Self {
+        Self::from(s.to_vec())
+    }
+}
+
+impl<T> From<Box<[Option<T>]>> for PackingList<T> {
+    fn from(b: Box<[Option<T>]>) -> Self {
+        Self::from(Vec::from(b))
     }
 }
 
@@ -458,6 +479,18 @@ impl<T> From<Vec<Option<T>>> for PackingList<T> {
             list: vec,
             empty_spots,
         }
+    }
+}
+
+impl<T: Clone> From<&Vec<Option<T>>> for PackingList<T> {
+    fn from(vec: &Vec<Option<T>>) -> Self {
+        Self::from(vec.clone())
+    }
+}
+
+impl<T: Clone> From<&mut Vec<Option<T>>> for PackingList<T> {
+    fn from(vec: &mut Vec<Option<T>>) -> Self {
+        Self::from(vec.clone())
     }
 }
 
