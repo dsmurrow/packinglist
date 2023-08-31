@@ -357,8 +357,11 @@ impl<T> PackingList<T> {
         self.list.get_mut(idx)?.as_mut()
     }
 
+
+
     /// Removes all trailing `None`'s. All user-facing instances of `PackingList` should already be
     /// trimmed, so this is for internal purposes.
+    #[inline]
     fn trim_vec(&mut self) {
         while self.list.last().is_some_and(|opt| opt.is_none()) {
             self.list.pop();
@@ -409,6 +412,7 @@ impl<T> FromIterator<Option<T>> for PackingList<T> {
 
 #[cfg(feature = "serde")]
 impl<T: Serialize> Serialize for PackingList<T> {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -419,6 +423,7 @@ impl<T: Serialize> Serialize for PackingList<T> {
 
 #[cfg(feature = "serde")]
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for PackingList<T> {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -434,6 +439,7 @@ impl<T> IntoIterator for PackingList<T> {
     type Item = (usize, T);
     type IntoIter = ListIter<T>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.list
             .into_iter()
@@ -443,24 +449,28 @@ impl<T> IntoIterator for PackingList<T> {
 }
 
 impl<T, const N: usize> From<[Option<T>; N]> for PackingList<T> {
+    #[inline]
     fn from(arr: [Option<T>; N]) -> Self {
         Self::from(Vec::from(arr))
     }
 }
 
 impl<T: Clone> From<&[Option<T>]> for PackingList<T> {
+    #[inline]
     fn from(s: &[Option<T>]) -> Self {
         Self::from(s.to_vec())
     }
 }
 
 impl<T: Clone> From<&mut [Option<T>]> for PackingList<T> {
+    #[inline]
     fn from(s: &mut [Option<T>]) -> Self {
         Self::from(s.to_vec())
     }
 }
 
 impl<T> From<Box<[Option<T>]>> for PackingList<T> {
+    #[inline]
     fn from(b: Box<[Option<T>]>) -> Self {
         Self::from(Vec::from(b))
     }
@@ -483,12 +493,14 @@ impl<T> From<Vec<Option<T>>> for PackingList<T> {
 }
 
 impl<T: Clone> From<&Vec<Option<T>>> for PackingList<T> {
+    #[inline]
     fn from(vec: &Vec<Option<T>>) -> Self {
         Self::from(vec.clone())
     }
 }
 
 impl<T: Clone> From<&mut Vec<Option<T>>> for PackingList<T> {
+    #[inline]
     fn from(vec: &mut Vec<Option<T>>) -> Self {
         Self::from(vec.clone())
     }
@@ -518,12 +530,14 @@ pub struct VecPtr<'a, T> {
 impl<'a, T> Deref for VecPtr<'a, T> {
     type Target = Vec<Option<T>>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.list.list
     }
 }
 
 impl<'a, T> DerefMut for VecPtr<'a, T> {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.list.list
     }
