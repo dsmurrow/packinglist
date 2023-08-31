@@ -585,6 +585,12 @@ mod tests {
     }
 
     #[test]
+    fn debug_format() {
+        let list = PackingList::from(vec![Some(1), None, None, Some(5)]);
+        assert_eq!("[1, _, _, 5]", format!("{:?}", list));
+    }
+
+    #[test]
     fn remove_makes_empty() {
         let mut list = PackingList::from(vec![None, Some(1)]);
 
@@ -611,6 +617,16 @@ mod tests {
         assert_eq!(iter.next(), Some((6, 3)));
         assert_eq!(iter.next(), Some((8, 4)));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn indexing() {
+        let vec = vec![Some(1), Some(100), None, None, Some(3)];
+        let list = PackingList::from(vec.clone());
+
+        for (i, item) in vec.into_iter().enumerate() {
+            assert_eq!(item, list[i]);
+        }
     }
 
     #[test]
