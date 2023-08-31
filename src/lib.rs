@@ -565,7 +565,7 @@ where
     }
 }
 
-impl<T: PartialEq> PartialEq for PackingList<Option<T>> {
+impl<T: PartialEq> PartialEq for PackingList<T> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.list == other.list
