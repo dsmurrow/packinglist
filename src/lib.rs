@@ -24,9 +24,9 @@ use core::cmp::Reverse;
 use std::cmp::Reverse;
 
 #[cfg(not(feature = "std"))]
-use core::convert;
+use core::convert::From;
 #[cfg(feature = "std")]
-use std::convert;
+use std::convert::From;
 
 #[cfg(not(feature = "std"))]
 use core::fmt;
@@ -106,7 +106,7 @@ impl<T> PackingList<T> {
     /// # Examples
     /// ```
     /// # use packinglist::PackingList;
-    /// let mut list = PackingList::from(vec![Some(1), None, Some(2), Some(5)]);
+    /// let mut list = PackingList::from([Some(1), None, Some(2), Some(5)]);
     ///
     /// {
     ///     let mut ptr = list.as_vec_mut();
@@ -138,7 +138,7 @@ impl<T> PackingList<T> {
     ///
     /// ```
     /// # use packinglist::PackingList;
-    /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None, Some(4), None]);
+    /// let mut list = PackingList::from([Some(0), None, Some(2), None, Some(4), None]);
     ///
     /// let transform = list.pack();
     ///
@@ -175,8 +175,8 @@ impl<T> PackingList<T> {
     /// # Examples
     /// ```
     /// # use packinglist::PackingList;
-    /// let mut a = PackingList::from(vec![Some(0), None, Some(2), None, Some(4)]);
-    /// let mut b = PackingList::from(vec![Some(1), Some(3)]);
+    /// let mut a = PackingList::from([Some(0), None, Some(2), None, Some(4)]);
+    /// let mut b = PackingList::from([Some(1), Some(3)]);
     ///
     /// let table = a.combine(&mut b);
     ///
@@ -214,7 +214,7 @@ impl<T> PackingList<T> {
     /// # Examples
     /// ```
     /// # use packinglist::PackingList;
-    /// let list = PackingList::from(vec![None, Some(1), Some(9), Some(3), None, None, Some(4)]);
+    /// let list = PackingList::from([None, Some(1), Some(9), Some(3), None, None, Some(4)]);
     ///
     /// let indeces: Vec<usize> = list.index_iter().collect();
     ///
@@ -234,7 +234,7 @@ impl<T> PackingList<T> {
     /// # Examples
     /// ```
     /// # use packinglist::PackingList;
-    /// let list = PackingList::from(vec![None, Some(1), Some(9), Some(3), None, None, Some(4)]);
+    /// let list = PackingList::from([None, Some(1), Some(9), Some(3), None, None, Some(4)]);
     ///
     /// let items: Vec<&i32> = list.item_iter().collect();
     ///
@@ -254,7 +254,7 @@ impl<T> PackingList<T> {
     /// # Examples
     /// ```
     /// # use packinglist::PackingList;
-    /// let mut list = PackingList::from(vec![Some(2), Some(5), None, Some(11)]);
+    /// let mut list = PackingList::from([Some(2), Some(5), None, Some(11)]);
     ///
     /// for v in list.iter_mut() {
     ///     *v += 1
@@ -275,11 +275,11 @@ impl<T> PackingList<T> {
     ///
     /// ```
     /// # use packinglist::PackingList;
-    /// let ex_vec = vec![Some(0), Some(1), Some(2)];
+    /// let ex_vec = [Some(0), Some(1), Some(2)];
     /// let list = PackingList::from(ex_vec.clone());
     /// assert_eq!(*list.as_vec(), ex_vec);
     ///
-    /// let mut list = PackingList::from(vec![Some(0), None, Some(2), None]);
+    /// let mut list = PackingList::from([Some(0), None, Some(2), None]);
     /// let idx = list.add(1);
     /// assert_eq!(idx, 1); // 1 was the smallest empty index
     /// assert_eq!(list[idx], Some(1));
@@ -308,7 +308,7 @@ impl<T> PackingList<T> {
     ///
     /// ```
     /// # use packinglist::PackingList;
-    /// let mut list = PackingList::from(vec![Some(0), Some(1), Some(2), Some(3)]);
+    /// let mut list = PackingList::from([Some(0), Some(1), Some(2), Some(3)]);
     ///
     /// list.remove(1);
     /// list.remove(2);
@@ -338,7 +338,7 @@ impl<T> PackingList<T> {
     /// # Examples
     /// ```
     /// # use packinglist::PackingList;
-    /// let mut list = PackingList::from(vec![Some(19), None]);
+    /// let mut list = PackingList::from([Some(19), None]);
     ///
     /// let mut_ref = list.get_mut(1);
     /// assert_eq!(mut_ref, None);
@@ -439,7 +439,13 @@ impl<T> IntoIterator for PackingList<T> {
     }
 }
 
-impl<T> convert::From<Vec<Option<T>>> for PackingList<T> {
+impl<T, const N: usize> From<[Option<T>; N]> for PackingList<T> {
+    fn from(arr: [Option<T>; N]) -> PackingList<T> {
+        Self::from(Vec::from(arr))
+    }
+}
+
+impl<T> From<Vec<Option<T>>> for PackingList<T> {
     fn from(vec: Vec<Option<T>>) -> Self {
         let empty_spots: BinaryHeap<Reverse<usize>> = vec
             .iter()
@@ -592,7 +598,7 @@ mod tests {
 
     #[test]
     fn add_does_fill() {
-        let mut list = PackingList::from(vec![Some(0), None, Some(2), None, Some(4)]);
+        let mut list = PackingList::from([Some(0), None, Some(2), None, Some(4)]);
 
         assert_eq!(list.add(1), 1);
         assert_eq!(list.add(3), 3);
@@ -604,7 +610,7 @@ mod tests {
 
     #[test]
     fn add_does_push() {
-        let mut list = PackingList::from(vec![Some(0), Some(1)]);
+        let mut list = PackingList::from([Some(0), Some(1)]);
 
         assert_eq!(list.add(2), 2);
         assert_eq!(*list.as_vec(), [Some(0), Some(1), Some(2)]);
@@ -612,13 +618,13 @@ mod tests {
 
     #[test]
     fn debug_format() {
-        let list = PackingList::from(vec![Some(1), None, None, Some(5)]);
+        let list = PackingList::from([Some(1), None, None, Some(5)]);
         assert_eq!("[1, _, _, 5]", format!("{:?}", list));
     }
 
     #[test]
     fn remove_makes_empty() {
-        let mut list = PackingList::from(vec![None, Some(1)]);
+        let mut list = PackingList::from([None, Some(1)]);
 
         assert_eq!(list.remove(1), Some(1));
         assert!(list.is_empty());
@@ -626,7 +632,7 @@ mod tests {
 
     #[test]
     fn remove_none_is_none() {
-        let vec = vec![Some(0), None, Some(1)];
+        let vec = [Some(0), None, Some(1)];
         let mut list = PackingList::from(vec.clone());
 
         assert_eq!(list.remove(1), None);
@@ -635,7 +641,7 @@ mod tests {
 
     #[test]
     fn into_iter() {
-        let mut iter = PackingList::from(vec![
+        let mut iter = PackingList::from([
             None,
             Some(1),
             Some(2),
@@ -657,7 +663,7 @@ mod tests {
 
     #[test]
     fn indexing() {
-        let vec = vec![Some(1), Some(100), None, None, Some(3)];
+        let vec = [Some(1), Some(100), None, None, Some(3)];
         let list = PackingList::from(vec.clone());
 
         for (i, item) in vec.into_iter().enumerate() {
@@ -668,7 +674,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_serialize() {
-        let list = PackingList::from(vec![Some(1), None, None, Some(400)]);
+        let list = PackingList::from([Some(1), None, None, Some(400)]);
         let serialized = serde_json::to_string(&list).unwrap();
         assert_eq!("[1,null,null,400]", serialized);
     }
