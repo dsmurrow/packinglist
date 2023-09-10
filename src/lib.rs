@@ -17,9 +17,9 @@ use std::vec;
 use alloc::boxed::Box;
 
 #[cfg(not(feature = "std"))]
-use alloc::collections::{binary_heap, BTreeMap, BinaryHeap};
+use alloc::collections::{BTreeSet, btree_set, BTreeMap, BinaryHeap};
 #[cfg(feature = "std")]
-use std::collections::{binary_heap, BTreeMap, BinaryHeap};
+use std::collections::{BTreeSet, btree_set, BTreeMap, BinaryHeap};
 
 #[cfg(not(feature = "std"))]
 use core::cmp::Reverse;
@@ -42,9 +42,9 @@ use core::hash::{Hash, Hasher};
 use std::hash::{Hash, Hasher};
 
 #[cfg(not(feature = "std"))]
-use core::iter::{Enumerate, FilterMap, Peekable};
+use core::iter::{Enumerate, FilterMap};
 #[cfg(feature = "std")]
-use std::iter::{Enumerate, FilterMap, Peekable};
+use std::iter::{Enumerate, FilterMap};
 
 #[cfg(not(feature = "std"))]
 use core::mem;
@@ -61,10 +61,12 @@ use core::slice::SliceIndex;
 #[cfg(feature = "std")]
 use std::slice::SliceIndex;
 
-#[cfg(feature = "serde")]
+#[cfg(any(feature = "serde-std", feature = "serde-nostd"))]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 pub type TransformTable = BTreeMap<usize, usize>;
+
+pub type IndexIter = btree_set::IntoIter<usize>;
 
 /// A FreeList implementation this will always put a new element at the smallest empty index of the
 /// list.
@@ -224,12 +226,11 @@ impl<T> PackingList<T> {
     /// assert_eq!(indeces, [1, 2, 3, 6]);
     /// ```
     #[inline]
-    pub fn index_iter(&self) -> IndexIter<'_> {
-        IndexIter {
-            current: 0,
-            end: self.list.len(),
-            heap_iter: self.empty_spots.iter().peekable(),
-        }
+    pub fn index_iter(&self) -> IndexIter {
+        let all_indeces = BTreeSet::from_iter(0..self.list.len());
+        let excluded_indeces = BTreeSet::from_iter(self.empty_spots.clone().into_iter().map(|i| i.0));
+
+        all_indeces.difference(&excluded_indeces).cloned().collect::<BTreeSet<usize>>().into_iter()
     }
 
     /// Returns an iterator over the items in the list in order of increasing index.
@@ -459,7 +460,7 @@ impl<T> FromIterator<Option<T>> for PackingList<T> {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(any(feature = "serde-std", feature = "serde-nostd"))]
 impl<T: Serialize> Serialize for PackingList<T> {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -470,7 +471,7 @@ impl<T: Serialize> Serialize for PackingList<T> {
     }
 }
 
-#[cfg(feature = "serde")]
+#[cfg(any(feature = "serde-std", feature = "serde-nostd"))]
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for PackingList<T> {
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -666,46 +667,9 @@ impl<'a, T> Drop for VecPtr<'a, T> {
     }
 }
 
-pub struct IndexIter<'a> {
-    current: usize,
-    end: usize,
-    heap_iter: Peekable<binary_heap::Iter<'a, Reverse<usize>>>,
-}
-
-impl<'a> Iterator for IndexIter<'a> {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(peek) = self.heap_iter.peek() {
-            if self.current < peek.0 {
-                self.current += 1;
-                Some(self.current - 1)
-            } else {
-                let mut popped = self.heap_iter.next().unwrap().0;
-
-                while self.heap_iter.peek().is_some_and(|v| popped == v.0 - 1) {
-                    popped = self.heap_iter.next().unwrap().0;
-                }
-
-                if popped + 1 < self.end {
-                    self.current = popped + 2;
-                    Some(self.current - 1)
-                } else {
-                    None
-                }
-            }
-        } else if self.current < self.end {
-            self.current += 1;
-            Some(self.current - 1)
-        } else {
-            None
-        }
-    }
-}
-
 pub struct ItemIter<'a, T> {
     list: &'a Vec<Option<T>>,
-    index_iter: IndexIter<'a>,
+    index_iter: IndexIter,
 }
 
 impl<'a, T> Iterator for ItemIter<'a, T> {
@@ -791,6 +755,43 @@ mod tests {
     }
 
     #[test]
+    fn iter_mut_weirdness() {
+        let mut list = PackingList::new();
+
+        assert_eq!(0, list.add(0));
+        assert_eq!(1, list.add(1));
+        assert_eq!(2, list.add(2));
+        assert_eq!(3, list.add(3));
+        assert_eq!(list, [Some(0), Some(1), Some(2), Some(3)]);
+
+        assert_eq!(0, list.remove(0).unwrap());
+        for v in list.iter_mut() {
+            if *v > 0 {
+                *v -= 1;
+            }
+        }
+        assert_eq!(list, [None, Some(0), Some(1), Some(2)]);
+
+        assert_eq!(1, list.remove(2).unwrap());
+        assert_eq!(list.index_iter().collect::<Vec<usize>>(), vec![1, 3]);
+        for v in list.iter_mut() {
+            if *v > 1 {
+                *v -= 1;
+            }
+        }
+        assert_eq!(list, [None, Some(0), None, Some(1)]);
+
+        assert_eq!(0, list.remove(1).unwrap());
+        assert_eq!(list.index_iter().collect::<Vec<usize>>(), vec![3]);
+        for v in list.iter_mut() {
+            if *v > 0 {
+                *v -= 1;
+            }
+        }
+        assert_eq!(list, [None, None, None, Some(0)]);
+    }
+
+    #[test]
     fn into_iter() {
         let mut iter = PackingList::from([
             None,
@@ -823,7 +824,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "serde")]
+    #[cfg(any(feature = "serde-std", feature = "serde-nostd"))]
     fn test_serialize() {
         let list = PackingList::from([Some(1), None, None, Some(400)]);
         let serialized = serde_json::to_string(&list).unwrap();
